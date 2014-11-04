@@ -10,7 +10,7 @@ app.get('/login', function(req, res){
   res.send('<form id="login"></form>');
 });
 
-app.post('/echo', function(req, res){
+app.all('/echo', function(req, res){
   res.writeHead(200, req.headers);
   req.pipe(res);
 });
@@ -100,12 +100,43 @@ describe('request', function(){
     })
   })
 
+  describe('req.toJSON()', function(){
+    it('should describe the request', function(done){
+      request
+      .post(':5000/echo')
+      .send({ foo: 'baz' })
+      .end(function(res){
+        var obj = res.request.toJSON();
+        assert('POST' == obj.method);
+        assert(':5000/echo' == obj.url);
+        assert('baz' == obj.data.foo);
+        done();
+      });
+    })
+  })
+
+  describe('res.toJSON()', function(){
+    it('should describe the response', function(done){
+      request
+      .post(':5000/echo')
+      .send({ foo: 'baz' })
+      .end(function(res){
+        var obj = res.toJSON();
+        assert('object' == typeof obj.header);
+        assert('object' == typeof obj.req);
+        assert(200 == obj.status);
+        assert('{"foo":"baz"}' == obj.text);
+        done();
+      });
+    });
+  })
+
   describe('res.error', function(){
     it('should should be an Error object', function(done){
       request
       .get(':5000/error')
       .end(function(res){
-        res.error.message.should.equal('got 500 response');
+        res.error.message.should.equal('cannot GET /error (500)');
         res.error.status.should.equal(500);
         done();
       });
@@ -205,6 +236,18 @@ describe('request', function(){
     })
   })
 
+  describe('req.unset(field)', function(){
+    it('should remove the header field', function(done){
+      request
+      .post('http://localhost:5000/echo')
+      .unset('User-Agent')
+      .end(function(res){
+        assert(void 0 == res.header['user-agent']);
+        done();
+      })
+    })
+  })
+
   describe('req.type(str)', function(){
     it('should set the Content-Type', function(done){
       request
@@ -220,6 +263,7 @@ describe('request', function(){
       request
       .post('http://localhost:5000/echo')
       .type('json')
+      .send('{"a": 1}')
       .end(function(res){
         res.should.be.json;
         done();
@@ -237,12 +281,54 @@ describe('request', function(){
     })
   })
 
+  describe('req.accept(str)', function(){
+    it('should set Accept', function(done){
+      request
+      .get('http://localhost:5000/echo')
+      .accept('text/x-foo')
+      .end(function(res){
+         res.header['accept'].should.equal('text/x-foo');
+         done();
+      });
+    })
+
+    it('should map "json"', function(done){
+      request
+      .get('http://localhost:5000/echo')
+      .accept('json')
+      .end(function(res){
+        res.header['accept'].should.equal('application/json');
+        done();
+      });
+    })
+
+    it('should map "xml"', function(done){
+      request
+      .get('http://localhost:5000/echo')
+      .accept('xml')
+      .end(function(res){
+        res.header['accept'].should.equal('application/xml');
+        done();
+      });
+    })
+
+    it('should map "html"', function(done){
+      request
+      .get('http://localhost:5000/echo')
+      .accept('html')
+      .end(function(res){
+        res.header['accept'].should.equal('text/html');
+        done();
+      });
+    })
+  })
+
   describe('req.write(str)', function(){
     it('should write the given data', function(done){
       var req = request.post('http://localhost:5000/echo');
       req.set('Content-Type', 'application/json');
-      req.write('{"name"').should.be.a('boolean');
-      req.write(':"tobi"}').should.be.a('boolean');
+      req.write('{"name"').should.be.a.boolean;
+      req.write(':"tobi"}').should.be.a.boolean;
       req.end(function(res){
         res.text.should.equal('{"name":"tobi"}');
         done();
@@ -325,6 +411,15 @@ describe('request', function(){
         done();
       });
     })
+
+    it('should emit request', function(done){
+      var req = request.post('http://localhost:5000/echo');
+      req.on('request', function(request){
+        assert(req == request);
+        done();
+      });
+      req.end();
+    })
   })
 
   describe('.buffer()', function(){
@@ -360,6 +455,36 @@ describe('request', function(){
           done();
         });
       });
+    })
+  })
+
+  describe('.agent()', function(){
+    it('should return the defaut agent', function(done){
+      var req = request.post('http://localhost:5000/echo');
+      req.agent().should.equal(false);
+      done();
+    })
+  })
+
+  describe('.agent(undefined)', function(){
+    it('should set an agent to undefined and ensure it is chainable', function(done){
+      var req = request.get();
+      var ret = req.agent(undefined);
+      ret.should.equal(req);
+      assert(req.agent() === undefined);
+      done();
+    })
+  })
+
+  describe('.agent(new http.Agent())', function(){
+    it('should set passed agent', function(done){
+      var http = require('http');
+      var req = request.get();
+      var agent = new http.Agent();
+      var ret = req.agent(agent);
+      ret.should.equal(req);
+      req.agent().should.equal(agent)
+      done();
     })
   })
 

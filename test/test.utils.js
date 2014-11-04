@@ -1,5 +1,6 @@
 
-request = superagent;
+var assert = require('assert');
+var request = require('../');
 
 function serialize(obj, res) {
   var val = request.serializeObject(obj);
@@ -10,7 +11,7 @@ function serialize(obj, res) {
 
 function parse(str, obj) {
   var val = request.parseString(str);
-  assert.eql(val
+  assert.deepEqual(val
     , obj
     , '"' + str + '" to '
     + JSON.stringify(obj) + ' parse failed. got: '
@@ -21,7 +22,10 @@ test('test .serializeObject() basics', function(){
   serialize('test', 'test');
   serialize('foo=bar', 'foo=bar');
   serialize({ foo: 'bar' }, 'foo=bar');
-  serialize({ foo: null }, 'foo=null');
+  serialize({ foo: null }, '');
+  serialize({ foo: 'null' }, 'foo=null');
+  serialize({ foo: undefined }, '');
+  serialize({ foo: 'undefined' }, 'foo=undefined');
   serialize({ name: 'tj', age: 24 }, 'name=tj&age=24');
 });
 

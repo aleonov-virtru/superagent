@@ -35,6 +35,16 @@ describe('req.query(String)', function(){
     });
   })
 
+  it('should work with compound elements', function(done){
+    request
+      .del('http://localhost:3006/')
+      .query('name=tobi&age=2')
+      .end(function(res){
+        res.body.should.eql({ name: 'tobi', age: '2' });
+        done();
+      });
+  })
+
   it('should work when called multiple times', function(done){
     request
     .del('http://localhost:3006/')
@@ -53,6 +63,19 @@ describe('req.query(String)', function(){
     .query({ age: 2 })
     .end(function(res){
       res.body.should.eql({ name: 'tobi', age: '2' });
+      done();
+    });
+  })
+
+  it('should supply uri malformed error to the callback', function(done){
+    request
+    .get('http://localhost:3006')
+    .query('name=toby')
+    .query('a=\uD800')
+    .query({ b: '\uD800' })
+    .end(function(err, res){
+      assert(err instanceof Error);
+      assert('URIError' == err.name);
       done();
     });
   })
@@ -88,7 +111,7 @@ describe('req.query(Object)', function(){
     .del('http://localhost:3006/')
     .query({ at: date })
     .end(function(res){
-      assert(String(date) == res.body.at);
+      assert(date.toISOString() == res.body.at);
       done();
     });
   })
