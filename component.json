@@ -2,7 +2,7 @@
   "name": "superagent",
   "repo": "virtru-components/superagent",
   "description": "awesome http requests",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "keywords": [
     "http",
     "ajax",
